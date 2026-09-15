@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BE FREE Marrakech — Location de Scooters, Vélos, Quads &amp; Vespa</title>
+<meta name="description" content="BE FREE Marrakech : location de scooters, vélos électriques, quads et Vespa à Marrakech. Réservation simple et directe via WhatsApp." />
+<meta name="theme-color" content="#E0122B" />
+
+<meta property="og:type" content="website" />
+<meta property="og:title" content="BE FREE Marrakech — Location de Scooters, Vélos, Quads & Vespa" />
+<meta property="og:description" content="Profitez de la liberté à Marrakech : réservez votre scooter, vélo, quad ou Vespa en un message WhatsApp." />
+<meta property="og:locale" content="fr_FR" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Caveat:wght@600;700&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: { brand: { red: '#E0122B', reddark: '#B80E22', black: '#121212', cream: '#F6F3EC' } },
+        fontFamily: { display: ['Anton', 'sans-serif'], brush: ['Caveat', 'cursive'], sans: ['Poppins', 'sans-serif'] },
+      }
+    }
+  }
+</script>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  "name": "BE FREE Marrakech",
+  "telephone": "+212665438895",
+  "address": { "@type": "PostalAddress", "addressLocality": "Marrakech", "addressCountry": "MA" },
+  "priceRange": "10€ - 200 DH"
+}
+</script>
+
+<style>
+:root {
+  --bf-red: #E0122B;
+  --bf-red-dark: #B80E22;
+  --bf-black: #121212;
+  --bf-cream: #F6F3EC;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Poppins', sans-serif; background: var(--bf-cream); color: var(--bf-black); }
+.font-display { font-family: 'Anton', sans-serif; }
+.font-brush { font-family: 'Caveat', cursive; }
+
+.brush-underline { position: relative; display: inline-block; }
+.brush-underline::after {
+  content: ""; position: absolute; left: -4%; right: -4%; bottom: -0.08em; height: 0.28em;
+  background: var(--bf-red); transform: rotate(-1deg) scaleX(0); transform-origin: left center;
+  border-radius: 2px; z-index: -1; transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.brush-underline.in-view::after { transform: rotate(-1deg) scaleX(1); }
+
+@keyframes bf-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+.animate-float { animation: bf-float 4s ease-in-out infinite; }
+
+.reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.7s ease, transform 0.7s ease; }
+.reveal.in-view { opacity: 1; transform: translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .animate-float { animation: none; }
+  .brush-underline::after { transition: none; transform: rotate(-1deg) scaleX(1); }
+}
+
+.btn-magnetic { transition: transform 0.25s ease, box-shadow 0.25s ease; }
+.btn-magnetic:hover { transform: translateY(-2px) scale(1.03); box-shadow: 0 10px 24px -6px rgba(224, 18, 43, 0.55); }
+
+.step-badge { background: var(--bf-red); color: white; font-family: 'Anton', sans-serif; }
+
+.fab-whatsapp { position: fixed; right: 18px; bottom: 18px; z-index: 50; }
+
+/* Page-switch fade, since routing swaps content without a real navigation */
+.page-enter { animation: bf-page-in 0.35s ease both; }
+@keyframes bf-page-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body class="font-sans bg-brand-cream text-brand-black">
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useMemo, useRef } = React;
+
+/* ======================= DATA ======================= */
+const WHATSAPP_NUMBER = "212665438895"; // 06 65 43 88 95
+const AGENCY = {
+  city: "Marrakech, Maroc",
+  phones: ["06 65 43 88 95", "06 88 13 87 74"],
+  site: "befreemarrakech.com",
+};
+
+const VEHICLES = [
+  { id: "kymco-50", name: "Kymco 50cc", category: "Scooters", price: "200 DH", unit: "/ jour", tag: "Automatique",
+    img: "https://images.unsplash.com/photo-1558980664-10e7170b5df9?q=80&w=900&auto=format&fit=crop",
+    desc: "Scooter automatique idéal pour se faufiler dans la médina et rejoindre la Gueliz sans effort." },
+  { id: "vespa-primavera", name: "Vespa Primavera & Sprint", category: "Vespa", price: "25€", unit: "/ jour", tag: "Automatique",
+    img: "https://images.unsplash.com/photo-1591637333472-6e8fd4b95a10?q=80&w=900&auto=format&fit=crop",
+    desc: "L'élégance italienne pour rouler avec style sur les avenues de Marrakech." },
+  { id: "velo-electrique", name: "Vélo électrique", category: "Vélos électriques", price: "10€", unit: "/ 1h", tag: "Électrique",
+    img: "https://images.unsplash.com/photo-1571068316344-75bc76f77890?q=80&w=900&auto=format&fit=crop",
+    desc: "Assistance électrique pour explorer la ville et ses jardins sans se fatiguer." },
+  { id: "vtt-rockrider", name: "VTT Rockrider", category: "Vélos", price: "10€", unit: "/ jour", tag: "Manuel",
+    img: "https://images.unsplash.com/photo-1544191696-102152d0d5aa?q=80&w=900&auto=format&fit=crop",
+    desc: "Un vélo tout-terrain robuste, parfait pour les excursions vers la palmeraie." },
+  { id: "quad-canam", name: "Quad 4x4", category: "Quads", price: "200 DH", unit: "/ jour", tag: "Automatique",
+    img: "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=900&auto=format&fit=crop",
+    desc: "Sensations fortes garanties pour affronter la palmeraie et les pistes environnantes." },
+  { id: "trottinette", name: "Trottinette électrique", category: "Trottinettes", price: "30 DH", unit: "/ 15 min", tag: "Électrique",
+    img: "https://images.unsplash.com/photo-1604868189265-219ba7ffc595?q=80&w=900&auto=format&fit=crop",
+    desc: "La solution la plus simple pour un trajet court et rapide dans le centre-ville." },
+];
+
+const CATEGORIES = [
+  { name: "Scooters", price: "À partir de 30 DH / jour", img: VEHICLES[0].img, filter: "Scooters" },
+  { name: "Vespa", price: "À partir de 25€ / jour", img: VEHICLES[1].img, filter: "Vespa" },
+  { name: "Vélos électriques", price: "À partir de 10€ / 1h", img: VEHICLES[2].img, filter: "Vélos électriques" },
+  { name: "Quads", price: "À partir de 200 DH / jour", img: VEHICLES[4].img, filter: "Quads" },
+];
+
+const PRICING_TABLE = [
+  { name: "Trottinette", rows: [["15 min", "30 DH"], ["30 min", "50 DH"], ["1h", "100 DH"], ["24h", "300 DH"]] },
+  { name: "Vélo électrique", rows: [["1h", "10€"], ["2h", "15€"], ["24h", "30€"]] },
+  { name: "Vélo manuel", rows: [["1 journée", "10€"]] },
+  { name: "Kymco 50cc", rows: [["1 journée", "200 DH"]] },
+  { name: "Vespa Primavera & Sprint", rows: [["1 journée", "25€"]] },
+];
+
+const GALLERY = [
+  "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?q=80&w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1558980664-10e7170b5df9?q=80&w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1591637333472-6e8fd4b95a10?q=80&w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1489493887464-892be6d1daae?q=80&w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=800&auto=format&fit=crop",
+];
+
+function buildWhatsAppLink(message) {
+  const base = `https://wa.me/${WHATSAPP_NUMBER}`;
+  return message ? `${base}?text=${encodeURIComponent(message)}` : base;
+}
+
+/* ======================= ROUTER (hash-based, all in one file) ======================= */
+function useHashRoute() {
+  const [hash, setHash] = useState(window.location.hash || "#/");
+  useEffect(() => {
+    const onChange = () => { setHash(window.location.hash || "#/"); window.scrollTo(0, 0); };
+    window.addEventListener("hashchange", onChange);
+    return () => window.removeEventListener("hashchange", onChange);
+  }, []);
+  return hash;
+}
+
+function useScrollReveal(deps) {
+  useEffect(() => {
+    const els = document.querySelectorAll(".reveal, .brush-underline");
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in-view"); io.unobserve(e.target); } });
+    }, { threshold: 0.15 });
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, deps || []);
+}
+
+/* ======================= ICONS ======================= */
+function WhatsAppIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M17.5 14.4c-.3-.2-1.8-.9-2-1-.3-.1-.5-.2-.7.2s-.8 1-1 1.1c-.2.2-.4.2-.7 0-.3-.1-1.4-.5-2.6-1.6-1-.9-1.6-2-1.8-2.3-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.2-.2.2-.3.3-.5.1-.2 0-.4 0-.5C9.4 8.9 9 7.9 8.8 7.4c-.2-.4-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2.1 3.2 5 4.4.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.8-.7 2-1.4.3-.7.3-1.3.2-1.4-.1-.1-.3-.2-.6-.4z"/>
+      <path d="M12 2C6.5 2 2 6.5 2 12c0 1.9.5 3.7 1.5 5.3L2 22l4.8-1.5c1.5.8 3.3 1.3 5.2 1.3 5.5 0 10-4.5 10-10S17.5 2 12 2zm0 18.3c-1.7 0-3.4-.5-4.8-1.3l-.3-.2-3.2 1 1-3.2-.2-.3C3.5 15 3 13.5 3 12c0-5 4-9 9-9s9 4 9 9-4 9-9 9z"/>
+    </svg>
+  );
+}
+
+/* ======================= SHARED: NAVBAR / FOOTER / FAB ======================= */
+const NAV_LINKS = [
+  { label: "Accueil", href: "#/" },
+  { label: "Véhicules", href: "#/vehicules" },
+  { label: "Tarifs", href: "#/#tarifs" },
+  { label: "À propos", href: "#/agence" },
+  { label: "Galerie", href: "#/agence#galerie" },
+  { label: "Contact", href: "#/agence#contact" },
+];
+
+function Navbar({ hash }) {
+  const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const currentBase = hash.split("#").filter(Boolean)[0] ? "#" + hash.split("#").filter(Boolean)[0] : "#/";
+
+  return (
+    <header className={`sticky top-0 z-40 transition-shadow duration-300 bg-[#F6F3EC]/95 backdrop-blur ${scrolled ? "shadow-md" : ""}`}>
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-5 md:px-8 py-3">
+        <a href="#/" className="flex flex-col leading-none shrink-0">
+          <span className="font-display text-2xl tracking-tight text-black">BE FREE</span>
+          <span className="bg-brand-red text-white text-[10px] tracking-[0.2em] px-2 py-0.5 -mt-1 w-fit">MARRAKECH</span>
+        </a>
+
+        <nav className="hidden lg:flex items-center gap-7 text-sm font-medium">
+          {NAV_LINKS.map((l) => (
+            <a key={l.label} href={l.href}
+              className={`relative pb-1 transition-colors hover:text-brand-red ${l.href.startsWith(currentBase) && currentBase !== "#/" ? "text-brand-red border-b-2 border-brand-red" : hash === "#/" && l.href === "#/" ? "text-brand-red border-b-2 border-brand-red" : "text-black/80"}`}>
+              {l.label}
+            </a>
+          ))}
+        </nav>
+
+        <div className="hidden lg:flex items-center gap-5">
+          <a href={buildWhatsAppLink("Salam ! Je voudrais réserver un véhicule chez BE FREE Marrakech.")} target="_blank" rel="noopener noreferrer"
+            className="btn-magnetic flex items-center gap-2 bg-brand-red text-white text-sm font-semibold px-5 py-2.5 rounded-full shadow-md">
+            <WhatsAppIcon className="w-4 h-4" /> Réserver sur WhatsApp
+          </a>
+          <div className="text-xs text-black/70 leading-tight text-right">
+            <div>{AGENCY.phones[0]}</div>
+            <div>{AGENCY.phones[1]}</div>
+          </div>
+        </div>
+
+        <button className="lg:hidden p-2 text-black" aria-label="Ouvrir le menu" onClick={() => setOpen(!open)}>
+          {open ? "✕" : "☰"}
+        </button>
+      </div>
+
+      {open && (
+        <div className="lg:hidden bg-[#F6F3EC] border-t border-black/10 px-5 py-4 flex flex-col gap-4">
+          {NAV_LINKS.map((l) => (
+            <a key={l.label} href={l.href} onClick={() => setOpen(false)} className="text-sm font-medium text-black/80">{l.label}</a>
+          ))}
+          <a href={buildWhatsAppLink("Salam ! Je voudrais réserver un véhicule chez BE FREE Marrakech.")} target="_blank" rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 bg-brand-red text-white text-sm font-semibold px-5 py-2.5 rounded-full">
+            <WhatsAppIcon className="w-4 h-4" /> Réserver sur WhatsApp
+          </a>
+        </div>
+      )}
+    </header>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="bg-[#121212] text-white pt-14 pb-6 mt-24">
+      <div className="max-w-7xl mx-auto px-5 md:px-8 grid grid-cols-1 md:grid-cols-4 gap-10">
+        <div>
+          <div className="font-display text-2xl">BE FREE</div>
+          <div className="bg-brand-red text-white text-[10px] tracking-[0.2em] px-2 py-0.5 w-fit mb-4">MARRAKECH</div>
+          <p className="text-white/60 text-sm max-w-xs">Location de scooters, quads, vélos &amp; Vespa.</p>
+          <p className="font-brush text-brand-red text-2xl mt-1">Explore. Rent. Be Free.</p>
+        </div>
+        <div>
+          <h4 className="text-sm font-semibold text-white/50 mb-4 tracking-wide">Navigation</h4>
+          <ul className="space-y-2 text-sm text-white/80">
+            {NAV_LINKS.map((l) => (<li key={l.label}><a href={l.href} className="hover:text-brand-red transition-colors">{l.label}</a></li>))}
+          </ul>
+        </div>
+        <div>
+          <h4 className="text-sm font-semibold text-white/50 mb-4 tracking-wide">Contact</h4>
+          <ul className="space-y-2 text-sm text-white/80">
+            <li>📍 {AGENCY.city}</li>
+            <li>📞 {AGENCY.phones[0]}</li>
+            <li>📞 {AGENCY.phones[1]}</li>
+          </ul>
+        </div>
+        <div>
+          <h4 className="text-sm font-semibold text-white/50 mb-4 tracking-wide">Suivez-nous</h4>
+          <div className="flex gap-3">
+            <a href={buildWhatsAppLink()} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-brand-red transition-colors"><WhatsAppIcon className="w-4 h-4" /></a>
+            <a href="#" className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-brand-red transition-colors">f</a>
+            <a href="#" className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-brand-red transition-colors">ig</a>
+            <a href="#" className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-brand-red transition-colors">yt</a>
+          </div>
+        </div>
+      </div>
+      <div className="max-w-7xl mx-auto px-5 md:px-8 mt-10 pt-6 border-t border-white/10 flex flex-col md:flex-row justify-between text-xs text-white/40 gap-2">
+        <span>© 2025 BE FREE Marrakech. Tous droits réservés.</span>
+        <span>{AGENCY.site}</span>
+      </div>
+    </footer>
+  );
+}
+
+function WhatsAppFab() {
+  return (
+    <a href={buildWhatsAppLink("Salam ! Je voudrais réserver un véhicule chez BE FREE Marrakech.")} target="_blank" rel="noopener noreferrer"
+      aria-label="Réserver sur WhatsApp"
+      className="fab-whatsapp btn-magnetic w-14 h-14 rounded-full bg-brand-red text-white flex items-center justify-center shadow-xl lg:hidden">
+      <WhatsAppIcon className="w-7 h-7" />
+    </a>
+  );
+}
+
+/* ======================= PAGE: HOME ======================= */
+function HeroTag({ icon, label }) {
+  return (<div className="flex items-center gap-2 text-sm font-medium text-black/80"><span className="text-brand-red text-base">{icon}</span> {label}</div>);
+}
+
+function HomePage() {
+  return (
+    <React.Fragment>
+      <section className="relative max-w-7xl mx-auto px-5 md:px-8 pt-10 md:pt-16 pb-16 grid lg:grid-cols-2 gap-10 items-center overflow-hidden">
+        <div>
+          <div className="flex items-center gap-1 text-brand-red font-semibold text-sm mb-3"><span>📍</span> MARRAKECH</div>
+          <h1 className="font-display text-6xl sm:text-7xl lg:text-8xl leading-[0.85] tracking-tight">BE FREE</h1>
+          <p className="mt-4 text-lg text-black/70 max-w-md">Location de scooters, vélos, quads &amp; Vespa</p>
+          <p className="font-display text-3xl sm:text-4xl mt-6 leading-tight">
+            Profitez de la liberté <br />
+            à <span className="font-brush text-brand-red font-bold text-5xl align-middle">Marrakech</span>
+          </p>
+          <div className="flex flex-wrap gap-6 mt-8">
+            <HeroTag icon="📍" label="Marrakech" />
+            <HeroTag icon="🛵" label="Location" />
+            <HeroTag icon="📍" label="Service local" />
+          </div>
+          <div className="flex flex-wrap gap-4 mt-8">
+            <a href={buildWhatsAppLink("Salam ! Je voudrais réserver un véhicule chez BE FREE Marrakech.")} target="_blank" rel="noopener noreferrer"
+              className="btn-magnetic flex items-center gap-2 bg-brand-red text-white font-semibold px-6 py-3.5 rounded-full shadow-lg">
+              <WhatsAppIcon className="w-5 h-5" /> Réserver sur WhatsApp
+            </a>
+            <a href="#/vehicules" className="flex items-center gap-2 border border-black/20 font-semibold px-6 py-3.5 rounded-full hover:border-brand-red hover:text-brand-red transition-colors">
+              Voir nos véhicules →
+            </a>
+          </div>
+        </div>
+        <div className="relative reveal">
+          <img src="https://images.unsplash.com/photo-1539037116277-4db20889f2d4?q=80&w=1200&auto=format&fit=crop"
+            alt="Scooters garés à Marrakech avec la Koutoubia en arrière-plan" className="w-full h-[420px] object-cover rounded-2xl shadow-2xl" />
+          <div className="absolute -bottom-5 -right-5 bg-black text-white px-5 py-3 rounded-xl shadow-xl hidden sm:block">
+            <p className="font-brush text-2xl text-brand-red leading-none">Plus qu'une location...</p>
+            <p className="font-brush text-xl leading-none">une expérience !</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-5 md:px-8 grid grid-cols-2 lg:grid-cols-4 gap-4 -mt-2">
+        {CATEGORIES.map((c, i) => (
+          <a key={c.name} href={`#/vehicules?cat=${encodeURIComponent(c.filter)}`}
+            className="reveal group relative rounded-2xl overflow-hidden h-44 sm:h-56 shadow-md" style={{ transitionDelay: `${i * 80}ms` }}>
+            <img src={c.img} alt={c.name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 flex items-end justify-between text-white">
+              <div><p className="font-semibold text-sm sm:text-base">{c.name}</p><p className="text-[11px] sm:text-xs text-white/80">{c.price}</p></div>
+              <span className="w-8 h-8 rounded-full bg-brand-red flex items-center justify-center shrink-0 transition-transform group-hover:translate-x-1">→</span>
+            </div>
+          </a>
+        ))}
+      </section>
+
+      <section className="max-w-7xl mx-auto px-5 md:px-8 mt-24">
+        <div className="flex items-center gap-2 text-brand-red font-semibold text-sm mb-2 reveal"><span>🚩</span> Nos véhicules</div>
+        <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
+          <h2 className="font-display text-3xl sm:text-4xl brush-underline reveal">Découvrez notre flotte</h2>
+          <a href="#/vehicules" className="border border-brand-red text-brand-red font-semibold px-5 py-2.5 rounded-full hover:bg-brand-red hover:text-white transition-colors text-sm">Voir toute la flotte →</a>
+        </div>
+        <p className="text-black/60 max-w-lg mb-8 reveal">Des véhicules fiables, confortables et adaptés à tous vos déplacements à Marrakech.</p>
+        <div className="grid md:grid-cols-4 gap-5">
+          <div className="md:col-span-3 grid sm:grid-cols-3 gap-5">
+            {[VEHICLES[0], VEHICLES[2], VEHICLES[1]].map((v, i) => (
+              <div key={v.id} className="reveal bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow" style={{ transitionDelay: `${i * 100}ms` }}>
+                <img src={v.img} alt={v.name} className="w-full h-40 object-cover" loading="lazy" />
+                <div className="p-4">
+                  <p className="font-semibold">{v.name}</p>
+                  <p className="text-brand-red font-bold mt-1">{v.price} <span className="text-black/50 font-medium text-sm">{v.unit}</span></p>
+                  <p className="text-xs text-black/50 mt-2">⚙ {v.tag}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <a href="#/vehicules?cat=Vélos" className="reveal relative rounded-2xl overflow-hidden min-h-[260px] bg-black text-white flex flex-col justify-between p-5 shadow-sm hover:shadow-lg transition-shadow">
+            <img src={VEHICLES[3].img} alt="VTT Rockrider" className="absolute inset-0 w-full h-full object-cover opacity-50" />
+            <div className="relative z-10"><p className="font-semibold text-lg">VTT Rockrider</p><p className="text-white/80 text-sm mt-1">À partir de <span className="text-brand-red font-bold">10€</span> / jour</p></div>
+            <span className="relative z-10 self-start bg-white text-black text-sm font-semibold px-4 py-2 rounded-full">Plus d'infos →</span>
+          </a>
+        </div>
+      </section>
+
+      <section id="tarifs" className="mt-28 bg-black text-white">
+        <div className="max-w-7xl mx-auto px-5 md:px-8 py-16">
+          <div className="flex flex-wrap justify-between items-start gap-6 mb-10">
+            <div className="reveal"><h2 className="font-brush text-5xl text-brand-red">Tarifs</h2><p className="text-white/60 max-w-xs mt-2 text-sm">Des prix clairs et transparents pour tous vos déplacements.</p></div>
+            <p className="font-brush text-2xl text-white/70 reveal">Des tarifs adaptés <br/>à vos besoins !</p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-6">
+            {PRICING_TABLE.map((p, i) => (
+              <div key={p.name} className="reveal border-t-2 border-brand-red pt-4" style={{ transitionDelay: `${i * 80}ms` }}>
+                <p className="font-semibold mb-3">{p.name}</p>
+                <ul className="space-y-2 text-sm">
+                  {p.rows.map((r) => (<li key={r[0]} className="flex justify-between text-white/70"><span>{r[0]}</span><span className="text-brand-red font-semibold">{r[1]}</span></li>))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-5 md:px-8 mt-24 grid lg:grid-cols-2 gap-10 items-center">
+        <div>
+          <div className="flex items-center gap-2 text-brand-red font-semibold text-sm mb-3 reveal"><span>🏁</span> Pourquoi choisir BE FREE ?</div>
+          <div className="grid grid-cols-2 gap-8">
+            {[{ icon: "🛡️", title: "Location simple et rapide" }, { icon: "📍", title: "Service local à Marrakech" }, { icon: "🕐", title: "Disponibilité toute la journée" }, { icon: "💬", title: "Contact direct via WhatsApp" }].map((it, i) => (
+              <div key={it.title} className="reveal text-center sm:text-left" style={{ transitionDelay: `${i * 90}ms` }}>
+                <div className="text-3xl mb-3">{it.icon}</div><p className="font-semibold">{it.title}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <img src="https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=1100&auto=format&fit=crop" alt="Devanture de l'agence BE FREE Marrakech avec scooters" className="reveal rounded-2xl shadow-xl w-full h-80 object-cover" />
+      </section>
+
+      <section className="max-w-7xl mx-auto px-5 md:px-8 mt-24 grid lg:grid-cols-2 gap-10 items-center">
+        <div>
+          <div className="flex items-center gap-2 text-brand-red font-semibold text-sm mb-3 reveal"><span>🏁</span> Comment ça marche ?</div>
+          <h2 className="font-display text-3xl mb-8 reveal">Réservez en 3 étapes simples.</h2>
+          <div className="space-y-6">
+            {[{ n: "01", icon: "🛵", title: "Choisissez votre véhicule", desc: "Sélectionnez le véhicule qui vous convient." }, { n: "02", icon: "🕐", title: "Précisez la durée", desc: "Indiquez la durée et vos informations." }, { n: "03", icon: "💬", title: "Contactez-nous sur WhatsApp", desc: "Recevez notre message et validez votre réservation." }].map((s, i) => (
+              <div key={s.n} className="reveal flex gap-4 items-start" style={{ transitionDelay: `${i * 100}ms` }}>
+                <span className="step-badge w-9 h-9 rounded-full flex items-center justify-center text-sm shrink-0">{s.n}</span>
+                <div><p className="font-semibold">{s.icon} {s.title}</p><p className="text-sm text-black/60 mt-1">{s.desc}</p></div>
+              </div>
+            ))}
+          </div>
+          <a href={buildWhatsAppLink("Salam ! Je voudrais réserver un véhicule chez BE FREE Marrakech.")} target="_blank" rel="noopener noreferrer"
+            className="btn-magnetic reveal inline-flex items-center gap-2 bg-brand-red text-white font-semibold px-6 py-3.5 rounded-full shadow-lg mt-8">
+            <WhatsAppIcon className="w-5 h-5" /> Réserver sur WhatsApp
+          </a>
+        </div>
+        <div className="relative reveal">
+          <img src="https://images.unsplash.com/photo-1489493887464-892be6d1daae?q=80&w=1100&auto=format&fit=crop" alt="Coucher de soleil sur la Koutoubia à Marrakech" className="rounded-2xl shadow-xl w-full h-80 object-cover" />
+          <div className="absolute bottom-4 left-4 right-4 text-white"><p className="font-brush text-3xl leading-none">Explore Marrakech <br/>à votre rythme.</p></div>
+        </div>
+      </section>
+    </React.Fragment>
+  );
+}
+
+/* ======================= PAGE: VEHICULES ======================= */
+const CATS = ["Tous", "Scooters", "Vespa", "Vélos électriques", "Vélos", "Quads", "Trottinettes"];
+
+function VehiclesPage({ hash }) {
+  const query = hash.includes("?") ? hash.split("?")[1] : "";
+  const params = new URLSearchParams(query);
+  const initial = params.get("cat") || "Tous";
+  const [active, setActive] = useState(CATS.includes(initial) ? initial : "Tous");
+
+  useEffect(() => {
+    const q = new URLSearchParams(hash.includes("?") ? hash.split("?")[1] : "");
+    const c = q.get("cat") || "Tous";
+    if (CATS.includes(c)) setActive(c);
+  }, [hash]);
+
+  const list = useMemo(() => (active === "Tous" ? VEHICLES : VEHICLES.filter((v) => v.category === active)), [active]);
+
+  return (
+    <main className="max-w-7xl mx-auto px-5 md:px-8 pt-12 pb-24">
+      <div className="flex items-center gap-2 text-brand-red font-semibold text-sm mb-2 reveal"><span>🚩</span> Notre flotte complète</div>
+      <h1 className="font-display text-4xl sm:text-5xl mb-3 reveal">Tous nos véhicules</h1>
+      <p className="text-black/60 max-w-lg mb-8 reveal">Choisissez le véhicule qui correspond à votre trajet et réservez-le en quelques secondes via WhatsApp.</p>
+
+      <div className="flex flex-wrap gap-2 mb-10">
+        {CATS.map((c) => (
+          <button key={c} onClick={() => setActive(c)}
+            className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${active === c ? "bg-brand-red text-white border-brand-red" : "border-black/15 text-black/70 hover:border-brand-red hover:text-brand-red"}`}>
+            {c}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {list.map((v, i) => (
+          <div key={v.id} className="reveal bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow flex flex-col" style={{ transitionDelay: `${(i % 3) * 90}ms` }}>
+            <img src={v.img} alt={v.name} className="w-full h-48 object-cover" loading="lazy" />
+            <div className="p-5 flex flex-col flex-1">
+              <p className="text-xs text-brand-red font-semibold uppercase tracking-wide">{v.category}</p>
+              <p className="font-semibold text-lg mt-1">{v.name}</p>
+              <p className="text-sm text-black/55 mt-2 flex-1">{v.desc}</p>
+              <div className="flex items-center justify-between mt-4">
+                <div><span className="text-brand-red font-bold text-lg">{v.price}</span><span className="text-black/50 text-sm"> {v.unit}</span></div>
+                <span className="text-xs text-black/50">⚙ {v.tag}</span>
+              </div>
+              <a href={`#/reservation?vehicle=${v.id}`} className="btn-magnetic mt-4 text-center bg-brand-red text-white font-semibold py-2.5 rounded-full text-sm">Réserver ce véhicule</a>
+            </div>
+          </div>
+        ))}
+      </div>
+      {list.length === 0 && <p className="text-center text-black/50 py-16">Aucun véhicule dans cette catégorie pour le moment.</p>}
+    </main>
+  );
+}
+
+/* ======================= PAGE: AGENCE ======================= */
+function AgencePage() {
+  return (
+    <main>
+      <section className="max-w-7xl mx-auto px-5 md:px-8 pt-12 pb-16 grid lg:grid-cols-2 gap-10 items-center">
+        <div>
+          <div className="flex items-center gap-2 text-brand-red font-semibold text-sm mb-3 reveal"><span>📍</span> Notre agence</div>
+          <h1 className="font-display text-4xl sm:text-5xl mb-4 reveal">L'agence BE FREE Marrakech</h1>
+          <p className="text-black/65 leading-relaxed reveal">Basée en plein cœur de Marrakech, BE FREE loue des scooters, vélos, quads et Vespa aux voyageurs comme aux habitants. Notre équipe locale vous accompagne pour choisir le véhicule adapté à votre trajet et vous remet les clés en main propre, sans paperasse compliquée.</p>
+          <p className="text-black/65 leading-relaxed mt-4 reveal">Notre philosophie est simple&nbsp;: une location rapide, un contact humain direct sur WhatsApp, et des véhicules entretenus régulièrement pour rouler l'esprit tranquille.</p>
+          <a href={buildWhatsAppLink("Salam ! J'aimerais avoir plus d'informations sur BE FREE Marrakech.")} target="_blank" rel="noopener noreferrer"
+            className="btn-magnetic reveal inline-flex items-center gap-2 bg-brand-red text-white font-semibold px-6 py-3.5 rounded-full shadow-lg mt-6">
+            <WhatsAppIcon className="w-5 h-5" /> Discuter sur WhatsApp
+          </a>
+        </div>
+        <img src="https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=1100&auto=format&fit=crop" alt="Devanture de l'agence BE FREE Marrakech" className="reveal rounded-2xl shadow-xl w-full h-96 object-cover" />
+      </section>
+
+      <section className="max-w-7xl mx-auto px-5 md:px-8 py-16 grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        {[{ icon: "🛡️", title: "Location simple et rapide", desc: "Un processus clair, sans formalités inutiles." }, { icon: "📍", title: "Service local à Marrakech", desc: "Une équipe qui connaît la ville et ses quartiers." }, { icon: "🕐", title: "Disponibilité toute la journée", desc: "Contactez-nous à l'heure qui vous arrange." }, { icon: "💬", title: "Contact direct via WhatsApp", desc: "Réponse rapide, sans intermédiaire." }].map((it, i) => (
+          <div key={it.title} className="reveal text-center" style={{ transitionDelay: `${i * 90}ms` }}>
+            <div className="text-3xl mb-3">{it.icon}</div><p className="font-semibold">{it.title}</p><p className="text-sm text-black/55 mt-2">{it.desc}</p>
+          </div>
+        ))}
+      </section>
+
+      <section id="galerie" className="max-w-7xl mx-auto px-5 md:px-8 py-16">
+        <div className="flex items-center gap-2 text-brand-red font-semibold text-sm mb-2 reveal"><span>🖼️</span> Galerie</div>
+        <h2 className="font-display text-3xl sm:text-4xl mb-8 brush-underline reveal">Un aperçu de nos véhicules</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          {GALLERY.map((g, i) => (
+            <img key={g} src={g} alt="BE FREE Marrakech — véhicule et ville" loading="lazy" className="reveal w-full h-40 sm:h-52 object-cover rounded-xl shadow-sm hover:scale-[1.03] transition-transform duration-500" style={{ transitionDelay: `${(i % 3) * 90}ms` }} />
+          ))}
+        </div>
+      </section>
+
+      <section id="contact" className="bg-black text-white mt-16">
+        <div className="max-w-7xl mx-auto px-5 md:px-8 py-16 grid sm:grid-cols-3 gap-10">
+          <div className="reveal"><p className="text-brand-red font-semibold text-sm mb-2">📍 Adresse</p><p className="text-white/80">{AGENCY.city}</p></div>
+          <div className="reveal"><p className="text-brand-red font-semibold text-sm mb-2">📞 Téléphone</p><p className="text-white/80">{AGENCY.phones[0]}</p><p className="text-white/80">{AGENCY.phones[1]}</p></div>
+          <div className="reveal">
+            <p className="text-brand-red font-semibold text-sm mb-2">💬 WhatsApp</p>
+            <a href={buildWhatsAppLink("Salam ! J'aimerais avoir plus d'informations sur BE FREE Marrakech.")} target="_blank" rel="noopener noreferrer"
+              className="btn-magnetic inline-flex items-center gap-2 bg-brand-red text-white font-semibold px-5 py-2.5 rounded-full mt-1">
+              <WhatsAppIcon className="w-4 h-4" /> Envoyer un message
+            </a>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+/* ======================= PAGE: RESERVATION ======================= */
+function Field({ label, error, children }) {
+  return (<label className="block mb-5"><span className="text-sm font-medium text-black/80">{label}</span><div className="mt-1.5">{children}</div>{error && <span className="text-xs text-brand-red mt-1 block">{error}</span>}</label>);
+}
+const inputClass = "w-full px-4 py-3 rounded-xl border border-black/15 bg-white focus:outline-none focus:ring-2 focus:ring-brand-red focus:border-transparent text-sm";
+
+function ReservationPage({ hash }) {
+  const query = hash.includes("?") ? hash.split("?")[1] : "";
+  const params = new URLSearchParams(query);
+  const preselected = VEHICLES.find((v) => v.id === params.get("vehicle"));
+
+  const [form, setForm] = useState({ name: "", phone: "", vehicleId: preselected ? preselected.id : "", startDate: "", duration: "", notes: "" });
+  const [errors, setErrors] = useState({});
+  const [sent, setSent] = useState(false);
+
+  useEffect(() => {
+    const q = new URLSearchParams(hash.includes("?") ? hash.split("?")[1] : "");
+    const v = VEHICLES.find((veh) => veh.id === q.get("vehicle"));
+    if (v) setForm((f) => ({ ...f, vehicleId: v.id }));
+  }, [hash]);
+
+  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
+
+  function validate() {
+    const errs = {};
+    if (!form.name.trim()) errs.name = "Merci d'indiquer votre nom.";
+    if (!form.phone.trim()) errs.phone = "Merci d'indiquer un numéro de téléphone.";
+    else if (!/^[0-9+ ]{8,}$/.test(form.phone.trim())) errs.phone = "Numéro de téléphone invalide.";
+    if (!form.vehicleId) errs.vehicleId = "Merci de choisir un véhicule.";
+    if (!form.startDate) errs.startDate = "Merci d'indiquer une date.";
+    if (!form.duration.trim()) errs.duration = "Merci d'indiquer la durée souhaitée.";
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    if (!validate()) return;
+    const vehicle = VEHICLES.find((v) => v.id === form.vehicleId);
+    const lines = [
+      `Salam ! Je voudrais réserver un véhicule chez BE FREE Marrakech.`, ``,
+      `👤 Nom : ${form.name}`, `📞 Téléphone : ${form.phone}`,
+      `🛵 Véhicule : ${vehicle ? vehicle.name : form.vehicleId}`,
+      `📅 Date de début : ${form.startDate}`, `⏱️ Durée souhaitée : ${form.duration}`,
+    ];
+    if (form.notes.trim()) lines.push(`📝 Note : ${form.notes.trim()}`);
+    setSent(true);
+    window.location.href = buildWhatsAppLink(lines.join("\n"));
+  }
+
+  return (
+    <main className="max-w-3xl mx-auto px-5 md:px-8 pt-12 pb-24">
+      <div className="flex items-center gap-2 text-brand-red font-semibold text-sm mb-2 reveal"><span>💬</span> Réservation</div>
+      <h1 className="font-display text-4xl sm:text-5xl mb-3 reveal">Réservez votre véhicule</h1>
+      <p className="text-black/60 mb-10 reveal">Remplissez ce formulaire, votre demande sera envoyée directement sur WhatsApp pour confirmer votre réservation.</p>
+
+      <form onSubmit={handleSubmit} className="reveal bg-white rounded-2xl shadow-sm p-6 sm:p-8">
+        <div className="grid sm:grid-cols-2 gap-x-6">
+          <Field label="Nom complet" error={errors.name}><input type="text" value={form.name} onChange={set("name")} placeholder="Votre nom" className={inputClass} /></Field>
+          <Field label="Téléphone / WhatsApp" error={errors.phone}><input type="tel" value={form.phone} onChange={set("phone")} placeholder="06 xx xx xx xx" className={inputClass} /></Field>
+        </div>
+        <Field label="Véhicule souhaité" error={errors.vehicleId}>
+          <select value={form.vehicleId} onChange={set("vehicleId")} className={inputClass}>
+            <option value="">Choisissez un véhicule</option>
+            {VEHICLES.map((v) => (<option key={v.id} value={v.id}>{v.name} — {v.price} {v.unit}</option>))}
+          </select>
+        </Field>
+        <div className="grid sm:grid-cols-2 gap-x-6">
+          <Field label="Date de début" error={errors.startDate}><input type="date" value={form.startDate} onChange={set("startDate")} className={inputClass} /></Field>
+          <Field label="Durée souhaitée" error={errors.duration}><input type="text" value={form.duration} onChange={set("duration")} placeholder="ex : 1 journée, 3 heures..." className={inputClass} /></Field>
+        </div>
+        <Field label="Message / précisions (optionnel)"><textarea value={form.notes} onChange={set("notes")} rows="3" placeholder="Livraison à l'hôtel, casque supplémentaire..." className={inputClass}></textarea></Field>
+        <button type="submit" className="btn-magnetic w-full flex items-center justify-center gap-2 bg-brand-red text-white font-semibold py-3.5 rounded-full shadow-lg mt-2">
+          <WhatsAppIcon className="w-5 h-5" /> {sent ? "Ouverture de WhatsApp..." : "Envoyer ma demande sur WhatsApp"}
+        </button>
+        <p className="text-xs text-black/40 text-center mt-4">En cliquant sur "Envoyer", WhatsApp s'ouvre avec votre demande déjà rédigée. Il ne vous reste qu'à l'envoyer.</p>
+      </form>
+    </main>
+  );
+}
+
+/* ======================= APP / ROUTE SWITCH ======================= */
+function App() {
+  const hash = useHashRoute();
+  const path = hash.replace(/^#/, "").split("?")[0].split("#")[0] || "/";
+  useScrollReveal([hash]);
+
+  let Page;
+  if (path === "/" || path === "") Page = <HomePage />;
+  else if (path === "/vehicules") Page = <VehiclesPage hash={hash} />;
+  else if (path === "/agence") Page = <AgencePage />;
+  else if (path === "/reservation") Page = <ReservationPage hash={hash} />;
+  else Page = <HomePage />;
+
+  return (
+    <React.Fragment>
+      <Navbar hash={hash} />
+      <div key={path} className="page-enter">{Page}</div>
+      <Footer />
+      <WhatsAppFab />
+    </React.Fragment>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
